@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BEU Analyzer Pro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+        
+        /* Mobile View Transitions */
+        .page-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .page-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        
+        .glass-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* Glass Nav */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        }
+
+        /* Modal Animation */
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: opacity 0.2s, transform 0.2s; }
+        .modal-exit { opacity: 1; transform: scale(1); }
+        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: opacity 0.2s, transform 0.2s; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-[100dvh] flex flex-col overflow-hidden">
+
+    <!-- Top Header -->
+    <header class="glass-header px-4 h-16 flex justify-between items-center z-30 shrink-0 sticky top-0">
+        <div class="flex items-center gap-2">
+            <div class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-lg shadow-blue-200">
+                <i class="fa-solid fa-graduation-cap text-sm"></i>
+            </div>
+            <h1 class="font-bold text-lg text-slate-800 tracking-tight">BEU Analyzer</h1>
+        </div>
+        <div class="flex items-center gap-2">
+             <!-- Status Badge -->
+            <span id="statusBadge" class="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200 uppercase tracking-wide">IDLE</span>
+            <button onclick="toggleInfoModal()" class="w-8 h-8 flex items-center justify-center rounded-full active:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors">
+                <i class="fa-solid fa-circle-info text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <!-- Added pb-32 to clear bottom nav comfortably on mobile -->
+    <main class="flex-1 overflow-y-auto overflow-x-hidden relative pb-32 md:pb-0 md:ml-20 scroll-smooth" id="mainContainer">
+        
+        <!-- PAGE 1: SETUP (HOME) -->
+        <section id="page-home" class="page-section active max-w-lg mx-auto p-4 md:p-8">
+            <div class="text-center mb-6 pt-2">
+                <h2 class="text-2xl font-bold text-slate-900">Batch Configuration</h2>
+                <p class="text-sm text-slate-500 mt-1">Configure parameters to fetch class results.</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-5">
+                <!-- ID Construction -->
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Batch</label>
+                        <input type="number" id="yearPrefix" value="21" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-center font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">College Code</label>
+                        <input type="number" id="collegeCode" value="129" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. 129">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Branch</label>
+                    <div class="relative">
+                        <select id="courseSelect" onchange="document.getElementById('courseCode').value = this.value" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 appearance-none font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            <option value="105">Computer Science (105)</option>
+                            <option value="101">Civil Engineering (101)</option>
+                            <option value="102">Mechanical Eng (102)</option>
+                            <option value="103">Electrical & Electronics (103)</option>
+                            <option value="104">Electronics & Comm (104)</option>
+                            <option value="110">Electrical Eng (110)</option>
+                        </select>
+                        <input type="hidden" id="courseCode" value="105">
+                        <div class="absolute right-4 top-3.5 text-slate-400 pointer-events-none">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Semester</label>
+                        <select id="semester" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-medium outline-none transition-all">
+                            <option value="VII">VII</option>
+                            <option value="VIII" selected>VIII</option>
+                            <option value="VI">VI</option>
+                            <option value="V">V</option>
+                            <option value="IV">IV</option>
+                            <option value="III">III</option>
+                            <option value="II">II</option>
+                            <option value="I">I</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Exam Year</label>
+                        <input type="number" id="examYear" value="2025" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-medium outline-none transition-all">
+                    </div>
+                </div>
+                
+                <div>
+                     <label class="block text-xs font-bold text-slate-500 mb-1.5 uppercase">Held In (Month/Year)</label>
+                     <input type="text" id="examHeld" value="May/2025" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-medium outline-none transition-all">
+                </div>
+
+                <!-- Toggles -->
+                <div class="flex items-center justify-between pt-2 px-1">
+                    <label class="flex items-center gap-3 cursor-pointer group select-none">
+                        <div class="relative flex items-center">
+                            <input type="checkbox" id="checkRegular" checked class="peer w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
+                        </div>
+                        <span class="text-sm font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Regular (001-120)</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer group select-none">
+                        <div class="relative flex items-center">
+                            <input type="checkbox" id="checkLE" checked class="peer w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
+                        </div>
+                        <span class="text-sm font-semibold text-slate-600 group-hover:text-slate-900 transition-colors">Lateral (900+)</span>
+                    </label>
+                </div>
+
+                <button onclick="startScraping()" id="btnStart" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4">
+                    <i class="fa-solid fa-rocket"></i> Launch Scanner
+                </button>
+            </div>
+            
+            <div class="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-800 flex gap-3 items-start leading-relaxed">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600 text-sm"></i>
+                <p><strong>Note:</strong> This tool runs in your browser. You must enable a <b>CORS extension</b> for it to communicate with the university server.</p>
+            </div>
+        </section>
+
+        <!-- PAGE 2: SCAN (PROGRESS) -->
+        <section id="page-scan" class="page-section max-w-2xl mx-auto p-4 md:p-8">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-xl font-bold text-slate-900">Live Scan</h2>
+                <button onclick="stopScraping()" id="btnStop" class="bg-red-50 text-red-600 px-5 py-2 rounded-lg text-sm font-bold border border-red-100 active:scale-95 transition-transform hover:bg-red-100">Stop</button>
+            </div>
+
+            <!-- Progress Circle -->
+            <div class="flex flex-col items-center justify-center py-6">
+                <div class="relative w-48 h-48 md:w-56 md:h-56">
+                    <svg class="w-full h-full transform -rotate-90">
+                        <circle cx="50%" cy="50%" r="45%" stroke="currentColor" stroke-width="8" fill="transparent" class="text-slate-100" />
+                        <circle id="progressCircle" cx="50%" cy="50%" r="45%" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" class="text-blue-600 transition-all duration-300" />
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span class="text-4xl md:text-5xl font-bold text-slate-800 tracking-tighter" id="progressPct">0%</span>
+                        <span class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Complete</span>
+                    </div>
+                </div>
+                <div class="mt-8 bg-slate-100 px-4 py-2 rounded-full">
+                    <p class="text-sm font-medium text-slate-600 animate-pulse flex items-center gap-2" id="currentProcessing">
+                        <span class="w-2 h-2 bg-slate-400 rounded-full"></span> Initializing...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Log -->
+            <div class="mt-6 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Recent Activity</span>
+                    <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold" id="foundCount">0 Found</span>
+                </div>
+                <div class="h-56 overflow-y-auto p-2 space-y-2 bg-slate-50/50" id="liveLog">
+                    <!-- Log Items injected here -->
+                    <div class="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
+                        <i class="fa-solid fa-hourglass-start text-2xl opacity-50"></i>
+                        <span class="text-sm italic">Waiting for data...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 3: RESULTS (LIST) -->
+        <!-- Removed h-full constraints to fix mobile scrolling overlaps -->
+        <section id="page-results" class="page-section md:h-full md:flex md:flex-col max-w-6xl mx-auto p-4 md:p-8">
+            <div class="flex justify-between items-center mb-6 shrink-0 sticky top-0 bg-slate-50/95 backdrop-blur z-10 py-2 md:static md:bg-transparent md:py-0">
+                <h2 class="text-xl font-bold text-slate-900">Student Results</h2>
+                <button onclick="exportCSV()" id="btnExport" disabled class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md shadow-green-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 transition-all active:scale-95">
+                    <i class="fa-solid fa-file-csv"></i> <span class="hidden md:inline">Export CSV</span>
+                </button>
+            </div>
+
+            <!-- Desktop Table -->
+            <div class="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 relative">
+                <div class="absolute inset-0 overflow-y-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-500 sticky top-0 shadow-sm z-10 uppercase text-xs tracking-wider">
+                            <tr>
+                                <th class="px-6 py-4 font-semibold">Reg No</th>
+                                <th class="px-6 py-4 font-semibold">Name</th>
+                                <th class="px-6 py-4 font-semibold">Father's Name</th>
+                                <th class="px-6 py-4 font-semibold">SGPA</th>
+                                <th class="px-6 py-4 font-semibold">CGPA</th>
+                                <th class="px-6 py-4 font-semibold">Status</th>
+                                <th class="px-6 py-4 font-semibold"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Mobile Cards -->
+            <div class="md:hidden space-y-4" id="mobileResultList">
+                <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+                    <div class="bg-white p-6 rounded-full shadow-sm mb-4">
+                        <i class="fa-solid fa-clipboard-list text-3xl text-slate-300"></i>
+                    </div>
+                    <p class="font-medium">No results fetched yet.</p>
+                    <p class="text-xs mt-1">Start scanning to see data.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 4: STATS (CHARTS) -->
+        <section id="page-stats" class="page-section max-w-6xl mx-auto p-4 md:p-8">
+            <h2 class="text-xl font-bold text-slate-900 mb-6 sticky top-0 bg-slate-50/95 backdrop-blur z-10 py-2 md:static md:bg-transparent md:py-0">Batch Analytics</h2>
+
+            <!-- KPI Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6">
+                <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Total Students</p>
+                    <p class="text-2xl md:text-3xl font-bold text-slate-800 mt-1" id="statTotal">0</p>
+                </div>
+                <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Avg CGPA</p>
+                    <p class="text-2xl md:text-3xl font-bold text-blue-600 mt-1" id="statAvg">0.0</p>
+                </div>
+                <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Pass Rate</p>
+                    <p class="text-2xl md:text-3xl font-bold text-green-600 mt-1" id="statPassRate">0%</p>
+                </div>
+                <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <p class="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">Failures</p>
+                    <p class="text-2xl md:text-3xl font-bold text-red-500 mt-1" id="statFail">0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Hall of Fame -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 lg:col-span-1">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                        <i class="fa-solid fa-trophy text-yellow-500"></i> Top Performers
+                    </h3>
+                    <div id="toppersList" class="space-y-3">
+                        <div class="text-sm text-slate-400 italic py-4 text-center">No data yet...</div>
+                    </div>
+                </div>
+
+                <!-- Charts Area -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2">
+                    <h3 class="font-bold text-slate-800 mb-4">CGPA Distribution</h3>
+                    <div class="h-48 md:h-64 w-full">
+                        <canvas id="distChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subject Insights -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+                <!-- Toughest Subject -->
+                <div class="bg-red-50 p-5 rounded-2xl border border-red-100 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 p-4 opacity-5">
+                        <i class="fa-solid fa-skull text-6xl text-red-900"></i>
+                    </div>
+                    <div class="relative z-10 flex items-start justify-between">
+                        <div>
+                            <p class="text-[10px] md:text-xs text-red-600 font-bold uppercase mb-1 tracking-wider">Toughest Subject</p>
+                            <h4 class="text-base md:text-lg font-bold text-slate-800 line-clamp-1" id="toughName">-</h4>
+                            <p class="text-xs text-slate-500 mt-1 font-mono" id="toughCode">Lowest Avg Score</p>
+                        </div>
+                        <div class="text-right pl-2">
+                            <span class="text-2xl md:text-3xl font-bold text-red-600 block" id="toughAvg">0</span>
+                            <span class="text-[10px] text-red-400 font-bold uppercase">Avg Marks</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Easiest Subject -->
+                <div class="bg-green-50 p-5 rounded-2xl border border-green-100 relative overflow-hidden">
+                     <div class="absolute right-0 top-0 p-4 opacity-5">
+                        <i class="fa-solid fa-wand-magic-sparkles text-6xl text-green-900"></i>
+                    </div>
+                    <div class="relative z-10 flex items-start justify-between">
+                        <div>
+                            <p class="text-[10px] md:text-xs text-green-600 font-bold uppercase mb-1 tracking-wider">Highest Scoring Subject</p>
+                            <h4 class="text-base md:text-lg font-bold text-slate-800 line-clamp-1" id="easyName">-</h4>
+                            <p class="text-xs text-slate-500 mt-1 font-mono" id="easyCode">Highest Avg Score</p>
+                        </div>
+                        <div class="text-right pl-2">
+                            <span class="text-2xl md:text-3xl font-bold text-green-600 block" id="easyAvg">0</span>
+                            <span class="text-[10px] text-green-400 font-bold uppercase">Avg Marks</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Regular vs LE Stats -->
+             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-6">
+                <h3 class="font-bold text-slate-800 mb-4">Cohort Comparison (Avg SGPA)</h3>
+                <div class="flex flex-col md:flex-row items-center gap-4">
+                    <div class="w-full flex-1 bg-slate-50 rounded-xl p-4 border border-slate-100 relative overflow-hidden">
+                        <p class="text-xs text-slate-500 font-bold uppercase mb-1">Regular</p>
+                        <p class="text-2xl font-bold text-blue-600" id="regAvg">0.00</p>
+                        <div class="absolute bottom-0 left-0 h-1 bg-blue-500 transition-all duration-500" id="regBar" style="width: 0%"></div>
+                    </div>
+                    <div class="text-slate-300 font-bold hidden md:block">VS</div>
+                    <div class="w-full flex-1 bg-slate-50 rounded-xl p-4 border border-slate-100 relative overflow-hidden">
+                        <p class="text-xs text-slate-500 font-bold uppercase mb-1">Lateral Entry</p>
+                        <p class="text-2xl font-bold text-purple-600" id="leAvg">0.00</p>
+                        <div class="absolute bottom-0 left-0 h-1 bg-purple-500 transition-all duration-500" id="leBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Subject Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="font-bold text-slate-800 text-sm">Subject Performance Breakdown</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left whitespace-nowrap">
+                        <thead class="bg-white text-slate-500 border-b border-slate-100 text-xs uppercase font-semibold">
+                            <tr>
+                                <th class="px-5 py-3 w-24">Code</th>
+                                <th class="px-5 py-3">Subject Name</th>
+                                <th class="px-5 py-3 text-right">Avg Marks</th>
+                                <th class="px-5 py-3 text-right">Failures</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subjectStatsBody" class="divide-y divide-slate-50">
+                            <tr><td colspan="4" class="p-6 text-center text-slate-400 italic">Scan batch to see subject analysis</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+             <div class="hidden">
+                 <canvas id="gradeChart"></canvas>
+             </div>
+        </section>
+
+    </main>
+
+    <!-- Marksheet Modal -->
+    <div id="detailsModal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+        <div class="absolute inset-x-0 bottom-0 md:inset-0 md:flex md:items-center md:justify-center pointer-events-none p-0 md:p-4">
+            <div class="bg-white w-full md:w-[600px] md:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh] md:max-h-[90vh] pointer-events-auto transform transition-transform duration-300 translate-y-full md:translate-y-0" id="modalContent">
+                
+                <!-- Modal Header -->
+                <div class="bg-white px-6 py-4 border-b border-slate-100 flex justify-between items-start shrink-0">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 leading-tight pr-4" id="mName">Student Name</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-1 bg-slate-100 inline-block px-2 py-0.5 rounded" id="mReg">21105129000</p>
+                    </div>
+                    <button onclick="closeModal()" class="bg-slate-100 text-slate-500 rounded-full w-8 h-8 flex items-center justify-center hover:bg-slate-200 transition active:scale-90">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="p-6 overflow-y-auto bg-slate-50/50">
+                    <!-- Personal Info -->
+                    <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm grid grid-cols-2 gap-4 mb-6 text-sm">
+                        <div>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Father's Name</p>
+                            <p class="font-semibold text-slate-700" id="mFather">-</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Mother's Name</p>
+                            <p class="font-semibold text-slate-700" id="mMother">-</p>
+                        </div>
+                    </div>
+
+                    <!-- Subjects -->
+                    <h4 class="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Theory Subjects
+                    </h4>
+                    <div class="space-y-2.5 mb-6" id="mTheoryList"></div>
+
+                    <h4 class="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Practical Subjects
+                    </h4>
+                    <div class="space-y-2.5 mb-6" id="mPracticalList"></div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="bg-white p-4 border-t border-slate-100 shrink-0">
+                     <div class="bg-slate-900 text-white rounded-xl p-4 flex justify-between items-center shadow-lg">
+                        <div class="flex gap-6">
+                            <div>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">SGPA</p>
+                                <p class="text-2xl font-bold" id="mSgpa">0.00</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-slate-400 font-bold uppercase">CGPA</p>
+                                <p class="text-2xl font-bold" id="mCgpa">0.00</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-4 py-1.5 rounded-lg text-sm font-bold bg-green-500 text-white shadow-md" id="mStatus">PASS</span>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar (Glassmorphism) -->
+    <nav class="fixed bottom-0 left-0 right-0 glass-nav flex justify-around items-center h-20 z-40 px-2 pb-safe md:hidden">
+        <button onclick="switchPage('home')" class="nav-btn text-blue-600 flex flex-col items-center justify-center gap-1.5 w-16 h-full active:scale-95 transition-transform" id="nav-home">
+            <div class="w-10 h-6 flex items-center justify-center rounded-full transition-colors" id="icon-home">
+                <i class="fa-solid fa-sliders text-lg"></i>
+            </div>
+            <span class="text-[10px] font-semibold tracking-wide">Setup</span>
+        </button>
+        <button onclick="switchPage('scan')" class="nav-btn text-slate-400 flex flex-col items-center justify-center gap-1.5 w-16 h-full active:scale-95 transition-transform" id="nav-scan">
+            <div class="w-10 h-6 flex items-center justify-center rounded-full transition-colors" id="icon-scan">
+                <i class="fa-solid fa-radar text-lg"></i>
+            </div>
+            <span class="text-[10px] font-semibold tracking-wide">Scan</span>
+        </button>
+        <button onclick="switchPage('results')" class="nav-btn text-slate-400 flex flex-col items-center justify-center gap-1.5 w-16 h-full active:scale-95 transition-transform" id="nav-results">
+            <div class="w-10 h-6 flex items-center justify-center rounded-full transition-colors" id="icon-results">
+                <i class="fa-solid fa-list text-lg"></i>
+            </div>
+            <span class="text-[10px] font-semibold tracking-wide">Results</span>
+        </button>
+        <button onclick="switchPage('stats')" class="nav-btn text-slate-400 flex flex-col items-center justify-center gap-1.5 w-16 h-full active:scale-95 transition-transform" id="nav-stats">
+             <div class="w-10 h-6 flex items-center justify-center rounded-full transition-colors" id="icon-stats">
+                <i class="fa-solid fa-chart-pie text-lg"></i>
+            </div>
+            <span class="text-[10px] font-semibold tracking-wide">Stats</span>
+        </button>
+    </nav>
+    
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex fixed top-16 left-0 bottom-0 w-20 bg-white border-r border-slate-200 flex-col items-center py-8 gap-6 z-40">
+        <button onclick="switchPage('home')" class="nav-btn-d bg-blue-50 text-blue-600 w-12 h-12 rounded-xl flex items-center justify-center shadow-sm hover:scale-105 transition-all" id="nav-d-home" title="Setup">
+            <i class="fa-solid fa-sliders text-xl"></i>
+        </button>
+        <button onclick="switchPage('scan')" class="nav-btn-d text-slate-400 hover:bg-slate-50 w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:text-slate-600" id="nav-d-scan" title="Scan">
+            <i class="fa-solid fa-radar text-xl"></i>
+        </button>
+        <button onclick="switchPage('results')" class="nav-btn-d text-slate-400 hover:bg-slate-50 w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:text-slate-600" id="nav-d-results" title="Results">
+            <i class="fa-solid fa-list text-xl"></i>
+        </button>
+        <button onclick="switchPage('stats')" class="nav-btn-d text-slate-400 hover:bg-slate-50 w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:text-slate-600" id="nav-d-stats" title="Stats">
+            <i class="fa-solid fa-chart-pie text-xl"></i>
+        </button>
+    </aside>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+            <h3 class="text-lg font-bold mb-2">About this tool</h3>
+            <p class="text-sm text-slate-600 mb-4">Client-side result parser for BEU Bihar.</p>
+            <div class="bg-amber-50 p-4 rounded-xl text-xs text-amber-800 mb-4 leading-relaxed border border-amber-100">
+                <strong>Important:</strong> You must have a CORS extension enabled (e.g., "Allow CORS") for this to work, as the university server blocks direct browser requests from external files.
+            </div>
+            <button onclick="toggleInfoModal()" class="w-full bg-slate-100 py-3 rounded-xl font-bold text-slate-700 hover:bg-slate-200 transition">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Navigation Logic ---
+        function switchPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            
+            // Mobile Nav
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-blue-600');
+                btn.classList.add('text-slate-400');
+            });
+            // Reset Icons bg
+             document.querySelectorAll('[id^="icon-"]').forEach(icon => {
+                icon.classList.remove('bg-blue-50');
+            });
+
+            document.getElementById(`nav-${pageId}`).classList.add('text-blue-600');
+            document.getElementById(`nav-${pageId}`).classList.remove('text-slate-400');
+            document.getElementById(`icon-${pageId}`).classList.add('bg-blue-50');
+            
+            // Desktop Nav
+            document.querySelectorAll('.nav-btn-d').forEach(btn => {
+                btn.classList.remove('bg-blue-50', 'text-blue-600', 'shadow-sm');
+                btn.classList.add('text-slate-400', 'hover:bg-slate-50');
+            });
+            const dNav = document.getElementById(`nav-d-${pageId}`);
+            if(dNav) {
+                dNav.classList.add('bg-blue-50', 'text-blue-600', 'shadow-sm');
+                dNav.classList.remove('text-slate-400', 'hover:bg-slate-50');
+            }
+        }
+        
+        function toggleInfoModal() { document.getElementById('infoModal').classList.toggle('hidden'); }
+
+        // --- Data & State ---
+        let state = {
+            isRunning: false,
+            shouldStop: false,
+            results: [],
+            stats: { 
+                total: 0, 
+                pass: 0, 
+                fail: 0, 
+                sumCGPA: 0, 
+                distribution: [0,0,0,0,0],
+                // New Stats Fields
+                subjects: {}, // Map Code -> { name, totalMarks, count, failCount }
+                regularSum: 0,
+                regularCount: 0,
+                leSum: 0,
+                leCount: 0
+            }
+        };
+
+        // --- Charts ---
+        const distCtx = document.getElementById('distChart').getContext('2d');
+        const distChart = new Chart(distCtx, {
+            type: 'bar',
+            data: { labels: ['<6', '6-7', '7-8', '8-9', '9+'], datasets: [{ label: 'Students', data: [0, 0, 0, 0, 0], backgroundColor: '#3b82f6', borderRadius: 4 }] },
+            options: { scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }, plugins: { legend: { display: false } }, maintainAspectRatio: false }
+        });
+
+        const gradeCtx = document.getElementById('gradeChart').getContext('2d');
+        const gradeChart = new Chart(gradeCtx, {
+            type: 'doughnut', data: { labels: [], datasets: [] }
+        });
+
+        // --- Scraper Logic ---
+        function generateQueue() {
+            const y = document.getElementById('yearPrefix').value;
+            const c = document.getElementById('courseCode').value;
+            const clg = document.getElementById('collegeCode').value;
+            const queue = [];
+            
+            if (document.getElementById('checkRegular').checked) {
+                for(let i=1; i<=120; i++) queue.push(`${y}${c}${clg}${i.toString().padStart(3, '0')}`);
+            }
+            if (document.getElementById('checkLE').checked) {
+                for(let i=1; i<=30; i++) queue.push(`${y}${c}${clg}${(900+i).toString()}`);
+            }
+            return queue;
+        }
+
+        async function startScraping() {
+            if (state.isRunning) return;
+            
+            state.isRunning = true;
+            state.shouldStop = false;
+            state.results = [];
+            state.stats = { 
+                total: 0, pass: 0, fail: 0, sumCGPA: 0, distribution: [0,0,0,0,0],
+                subjects: {}, regularSum: 0, regularCount: 0, leSum: 0, leCount: 0
+            };
+            
+            document.getElementById('mobileResultList').innerHTML = '';
+            document.getElementById('resultTableBody').innerHTML = '';
+            document.getElementById('liveLog').innerHTML = '';
+            document.getElementById('btnExport').disabled = true;
+            document.getElementById('statusBadge').innerText = "RUNNING";
+            document.getElementById('statusBadge').className = "text-[10px] font-bold text-green-600 bg-green-100 px-2.5 py-1 rounded-full border border-green-200 animate-pulse";
+            
+            updateStatsUI();
+            switchPage('scan');
+
+            const queue = generateQueue();
+            const examYear = document.getElementById('examYear').value;
+            const sem = document.getElementById('semester').value;
+            const heldIn = document.getElementById('examHeld').value;
+            
+            let processed = 0;
+
+            for (const regNo of queue) {
+                if (state.shouldStop) break;
+                processed++;
+                updateProgress(processed, queue.length, regNo);
+
+                try {
+                    const url = `https://beu-bih.ac.in/backend/v1/result/get-result?year=${examYear}&redg_no=${regNo}&semester=${sem}&exam_held=${heldIn}`;
+                    const res = await fetch(url);
+                    const root = await res.json();
+                    
+                    if (root.status === 200 && root.data) {
+                        const studentData = root.data;
+                        if(studentData.name) {
+                            addStudent(studentData, regNo);
+                            logActivity(regNo, studentData.name, true);
+                        }
+                    }
+                } catch (e) { console.log("Fetch error or 404", e); }
+                
+                await new Promise(r => setTimeout(r, 150)); 
+            }
+            stopScraping();
+        }
+
+        function stopScraping() {
+            state.isRunning = false;
+            state.shouldStop = true;
+            document.getElementById('statusBadge').innerText = "COMPLETED";
+            document.getElementById('statusBadge').className = "text-[10px] font-bold text-blue-600 bg-blue-100 px-2.5 py-1 rounded-full border border-blue-200";
+            document.getElementById('currentProcessing').innerText = "Scan Finished";
+            if(state.results.length > 0) document.getElementById('btnExport').disabled = false;
+            
+            // Switch to stats if results found
+            if(state.results.length > 0) {
+                // Optional: Auto switch
+                // switchPage('stats');
+            }
+        }
+
+        function updateProgress(current, total, regNo) {
+            const pct = Math.round((current / total) * 100);
+            document.getElementById('progressPct').innerText = `${pct}%`;
+            document.getElementById('currentProcessing').innerHTML = `<span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span> Checking ${regNo}...`;
+            
+            const circumference = 2 * Math.PI * 45; // 45 is radius % approximately
+            // In SVG r=45% of 200px viewbox is ~90 units. 2*PI*90 = 565.
+            // Simplified logic: dasharray is 283 in svg path.
+            const offset = 283 - (283 * pct) / 100;
+            document.getElementById('progressCircle').style.strokeDashoffset = offset;
+        }
+
+        function logActivity(reg, name, success) {
+            const div = document.createElement('div');
+            div.className = "flex items-center justify-between text-xs p-3 bg-white rounded-lg border border-slate-100 shadow-sm fade-in mb-2";
+            div.innerHTML = `
+                <div class="flex flex-col">
+                    <span class="font-bold text-slate-700 truncate max-w-[150px]">${name}</span>
+                    <span class="font-mono text-[10px] text-slate-400">${reg}</span>
+                </div>
+                <div class="bg-green-100 text-green-700 w-6 h-6 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-check text-[10px]"></i>
+                </div>
+            `;
+            const log = document.getElementById('liveLog');
+            // Remove waiting msg if exists
+            if(log.children[0]?.className?.includes('flex-col')) log.innerHTML = '';
+            log.insertBefore(div, log.firstChild);
+            document.getElementById('foundCount').innerText = `${state.results.length} Found`;
+        }
+
+        function addStudent(data, regNo) {
+            // Defensive check: Ensure stats objects exist
+            if (!state.stats) state.stats = {};
+            if (!state.stats.distribution) state.stats.distribution = [0,0,0,0,0];
+            if (!state.stats.subjects) state.stats.subjects = {};
+            
+            // --- ROBUST SGPA EXTRACTION START ---
+            let currentSgpa = 0;
+            let rawSgpa = data.sgpa || data.SGPA; // Handle potential case key difference
+
+            // Log for debugging
+            console.log(`Processing ${regNo}: SGPA Raw Type:`, typeof rawSgpa, rawSgpa);
+
+            if (Array.isArray(rawSgpa)) {
+                // Filter out null, undefined, empty string to get the last VALID entry
+                // Because sometimes the array has trailing nulls for future semesters
+                const validEntries = rawSgpa.filter(val => val !== null && val !== undefined && val !== "");
+                
+                if (validEntries.length > 0) {
+                    const lastVal = validEntries[validEntries.length - 1];
+                    currentSgpa = parseFloat(lastVal);
+                }
+            } else if (typeof rawSgpa === 'string') {
+                currentSgpa = parseFloat(rawSgpa);
+            } else if (typeof rawSgpa === 'number') {
+                currentSgpa = rawSgpa;
+            } else if (typeof rawSgpa === 'object' && rawSgpa !== null) {
+                 // Rare edge case: object like {0: "8.1", 1: "7.2"}
+                 const keys = Object.keys(rawSgpa).sort();
+                 if (keys.length > 0) {
+                     currentSgpa = parseFloat(rawSgpa[keys[keys.length - 1]]);
+                 }
+            }
+
+            // Final safety check
+            if (isNaN(currentSgpa)) currentSgpa = 0;
+            // --- ROBUST SGPA EXTRACTION END ---
+
+            const cgpa = parseFloat(data.cgpa) || 0;
+            const status = data.fail_any || "N/A";
+            const isPass = status === "PASS";
+            
+            const student = { 
+                regNo: data.redg_no || regNo,
+                name: data.name,
+                father: data.father_name,
+                mother: data.mother_name,
+                sgpa: currentSgpa,
+                cgpa: cgpa,
+                status: status,
+                theory: data.theorySubjects || [],
+                practical: data.practicalSubjects || []
+            };
+            state.results.push(student);
+
+            state.stats.total++;
+            if(isPass) state.stats.pass++; else state.stats.fail++;
+            state.stats.sumCGPA += cgpa;
+            
+            // Distribution Logic
+            if(cgpa < 6) state.stats.distribution[0]++;
+            else if(cgpa < 7) state.stats.distribution[1]++;
+            else if(cgpa < 8) state.stats.distribution[2]++;
+            else if(cgpa < 9) state.stats.distribution[3]++;
+            else if (state.stats.distribution[4] !== undefined) state.stats.distribution[4]++;
+
+            const serialStr = regNo.toString().slice(-3);
+            const serial = parseInt(serialStr);
+            if(serial > 800) {
+                state.stats.leCount++;
+                state.stats.leSum += currentSgpa;
+            } else {
+                state.stats.regularCount++;
+                state.stats.regularSum += currentSgpa;
+            }
+
+            const processSubject = (sub) => {
+                if(!sub.code) return;
+                if(!state.stats.subjects[sub.code]) {
+                    state.stats.subjects[sub.code] = { name: sub.name, totalMarks: 0, count: 0, failCount: 0 };
+                }
+                const marks = parseInt(sub.total);
+                if(!isNaN(marks)) {
+                    state.stats.subjects[sub.code].totalMarks += marks;
+                    state.stats.subjects[sub.code].count++;
+                    if(sub.grade === 'F' || sub.grade === 'ABS') state.stats.subjects[sub.code].failCount++;
+                }
+            };
+            if(student.theory && Array.isArray(student.theory)) student.theory.forEach(processSubject);
+            
+            updateStatsUI();
+            renderStudent(student, state.results.length - 1);
+        }
+
+        function renderStudent(s, index) {
+            const statusColor = s.status === 'PASS' ? 'text-green-700 bg-green-50 border-green-100' : 'text-red-700 bg-red-50 border-red-100';
+            
+            // Mobile Card
+            const card = document.createElement('div');
+            card.onclick = () => openModal(index);
+            card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center cursor-pointer active:scale-[0.98] transition-transform";
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-center gap-2 mb-1.5">
+                        <span class="font-bold text-sm text-slate-800 line-clamp-1">${s.name}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full border ${statusColor} font-bold tracking-wide">${s.status}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-400 font-mono">
+                        <i class="fa-regular fa-id-card"></i> ${s.regNo}
+                    </div>
+                </div>
+                <div class="text-right pl-4 border-l border-slate-100 ml-2">
+                    <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">SGPA</div>
+                    <div class="text-xl font-bold text-blue-600">${s.sgpa.toFixed(2)}</div>
+                </div>
+            `;
+            const list = document.getElementById('mobileResultList');
+            if(list.children[0]?.className?.includes('py-20')) list.innerHTML = '';
+            list.appendChild(card);
+
+            // Desktop Row
+            const row = document.createElement('tr');
+            row.onclick = () => openModal(index);
+            row.className = "hover:bg-slate-50/80 border-b border-slate-50 cursor-pointer transition-colors group";
+            row.innerHTML = `
+                <td class="px-6 py-4 font-mono text-slate-500 text-xs">${s.regNo}</td>
+                <td class="px-6 py-4 font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">${s.name}</td>
+                <td class="px-6 py-4 text-slate-500 text-xs uppercase tracking-wide">${s.father || '-'}</td>
+                <td class="px-6 py-4 text-blue-600 font-bold">${s.sgpa.toFixed(2)}</td>
+                <td class="px-6 py-4 text-slate-600 font-bold">${s.cgpa.toFixed(2)}</td>
+                <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${statusColor}">${s.status}</span></td>
+                <td class="px-6 py-4 text-slate-300 group-hover:text-blue-400 transition-colors"><i class="fa-solid fa-chevron-right text-xs"></i></td>
+            `;
+            document.getElementById('resultTableBody').appendChild(row);
+        }
+
+        function updateStatsUI() {
+            const { total, pass, fail, sumCGPA, distribution, regularCount, regularSum, leCount, leSum, subjects } = state.stats;
+            
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statAvg').innerText = total ? (sumCGPA/total).toFixed(2) : "0.0";
+            const passRate = total ? Math.round((pass/total)*100) : 0;
+            document.getElementById('statPassRate').innerText = `${passRate}%`;
+            document.getElementById('statFail').innerText = fail;
+
+            distChart.data.datasets[0].data = distribution;
+            distChart.update();
+
+            const sorted = [...state.results].sort((a, b) => b.sgpa - a.sgpa).slice(0, 3);
+            const toppersHtml = sorted.map((s, i) => {
+                const colors = ['bg-yellow-50 border-yellow-100 text-yellow-800', 'bg-slate-50 border-slate-100 text-slate-700', 'bg-orange-50 border-orange-100 text-orange-800'];
+                const icon = i === 0 ? '<i class="fa-solid fa-crown text-yellow-500"></i>' : `<span class="font-bold text-slate-400">#${i+1}</span>`;
+                return `
+                    <div class="flex items-center justify-between p-3 rounded-xl border ${colors[i] || ''}">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 flex justify-center">${icon}</span>
+                            <div class="text-xs">
+                                <p class="font-bold truncate w-32 md:w-auto text-sm">${s.name}</p>
+                                <p class="opacity-60 font-mono text-[10px]">${s.regNo}</p>
+                            </div>
+                        </div>
+                        <span class="font-bold text-lg">${s.sgpa.toFixed(2)}</span>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('toppersList').innerHTML = toppersHtml || '<div class="text-sm text-slate-400 italic py-4 text-center">No data yet...</div>';
+
+            let toughest = { name: '-', avg: 100 }, easiest = { name: '-', avg: 0 };
+            const subRows = Object.entries(subjects).map(([code, data]) => {
+                const avg = data.count ? (data.totalMarks / data.count) : 0;
+                if(data.count > 0) {
+                    if(avg < toughest.avg) toughest = { name: data.name, code: code, avg: avg };
+                    if(avg > easiest.avg) easiest = { name: data.name, code: code, avg: avg };
+                }
+                return `
+                    <tr class="border-b border-slate-50 hover:bg-slate-50/50">
+                        <td class="px-5 py-4 font-mono text-xs text-slate-500">${code}</td>
+                        <td class="px-5 py-4 font-medium text-slate-700 text-xs md:text-sm whitespace-normal">${data.name}</td>
+                        <td class="px-5 py-4 text-right font-bold text-slate-800">${avg.toFixed(1)}</td>
+                        <td class="px-5 py-4 text-right text-red-500 font-bold">${data.failCount}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            document.getElementById('subjectStatsBody').innerHTML = subRows || '<tr><td colspan="4" class="p-6 text-center text-slate-400 italic">Scan batch to see subject analysis</td></tr>';
+            
+            if(toughest.name !== '-') {
+                document.getElementById('toughName').innerText = toughest.name;
+                document.getElementById('toughCode').innerText = toughest.code;
+                document.getElementById('toughAvg').innerText = toughest.avg.toFixed(1);
+            }
+            if(easiest.name !== '-') {
+                document.getElementById('easyName').innerText = easiest.name;
+                document.getElementById('easyCode').innerText = easiest.code;
+                document.getElementById('easyAvg').innerText = easiest.avg.toFixed(1);
+            }
+
+            const rAvg = regularCount ? (regularSum / regularCount) : 0;
+            const lAvg = leCount ? (leSum / leCount) : 0;
+            document.getElementById('regAvg').innerText = rAvg.toFixed(2);
+            document.getElementById('leAvg').innerText = lAvg.toFixed(2);
+            
+            const totalAvg = rAvg + lAvg;
+            if(totalAvg > 0) {
+                document.getElementById('regBar').style.width = `${(rAvg/totalAvg)*100}%`;
+                document.getElementById('leBar').style.width = `${(lAvg/totalAvg)*100}%`;
+            }
+        }
+
+        // --- Modal Logic ---
+        function openModal(index) {
+            const s = state.results[index];
+            document.getElementById('mName').innerText = s.name;
+            document.getElementById('mReg').innerText = s.regNo;
+            document.getElementById('mFather').innerText = s.father || 'N/A';
+            document.getElementById('mMother').innerText = s.mother || 'N/A';
+            document.getElementById('mSgpa').innerText = s.sgpa.toFixed(2);
+            document.getElementById('mCgpa').innerText = s.cgpa.toFixed(2);
+            
+            const statusBadge = document.getElementById('mStatus');
+            statusBadge.innerText = s.status;
+            statusBadge.className = s.status === 'PASS' 
+                ? "px-4 py-1.5 rounded-lg text-sm font-bold bg-green-500 text-white shadow-md shadow-green-200"
+                : "px-4 py-1.5 rounded-lg text-sm font-bold bg-red-500 text-white shadow-md shadow-red-200";
+
+            const renderSub = (subs, container) => {
+                container.innerHTML = subs.map(sub => `
+                    <div class="flex justify-between items-center text-xs p-3 bg-white rounded-xl border border-slate-100 shadow-sm">
+                        <div class="flex-1 pr-2">
+                            <span class="font-bold text-slate-700 block text-xs md:text-sm mb-0.5">${sub.name}</span>
+                            <span class="text-slate-400 font-mono text-[10px] bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">${sub.code}</span>
+                        </div>
+                        <div class="flex gap-3 text-right">
+                             <div class="flex flex-col items-end">
+                                <span class="block text-[8px] text-slate-400 uppercase font-bold tracking-wider">Marks</span>
+                                <span class="font-bold text-slate-700 text-sm">${sub.total}</span>
+                             </div>
+                             <div class="flex flex-col items-end w-8">
+                                <span class="block text-[8px] text-slate-400 uppercase font-bold tracking-wider">Grd</span>
+                                <span class="font-bold text-sm ${sub.grade === 'F' ? 'text-red-500' : 'text-blue-600'}">${sub.grade}</span>
+                             </div>
+                        </div>
+                    </div>
+                `).join('');
+            };
+
+            renderSub(s.theory, document.getElementById('mTheoryList'));
+            renderSub(s.practical, document.getElementById('mPracticalList'));
+
+            const modal = document.getElementById('detailsModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('modalContent').classList.remove('translate-y-full');
+            }, 10);
+        }
+
+        function closeModal() {
+            document.getElementById('modalContent').classList.add('translate-y-full');
+            setTimeout(() => {
+                document.getElementById('detailsModal').classList.add('hidden');
+            }, 300);
+        }
+
+        function exportCSV() {
+            let csv = "RegNo,Name,FatherName,SGPA,CGPA,Status\n";
+            state.results.forEach(s => {
+                csv += `${s.regNo},"${s.name}","${s.father}",${s.sgpa},${s.cgpa},${s.status}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'BEU_Results_Details.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
